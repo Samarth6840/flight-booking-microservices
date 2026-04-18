@@ -1,0 +1,28 @@
+# SkyBook Flight Booking System - Dependencies
+
+## Backend (Java/Spring Boot)
+- Java 17
+- Maven 3.8+
+- MySQL 8.0
+
+## Frontend
+- Node.js 18+
+- pnpm 10.4+
+
+## Infrastructure
+- Docker 20+
+- Docker Compose 2+
+
+## Services
+- user-service (port 8081)
+- flight-service (port 8092)
+- booking-service (port 8083)
+- payment-service (port 8084)
+- api-gateway (port 9090)
+- mysql (port 3307)
+
+## Quick Start
+1. Install Docker & Docker Compose
+2. Install Node.js 18+ and pnpm
+3. Backend: docker-compose up --build
+4. Frontend: cd skybook-frontend && pnpm install && pnpm run dev

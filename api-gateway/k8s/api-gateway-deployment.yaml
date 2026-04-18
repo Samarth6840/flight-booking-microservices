@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: api-gateway:latest
+          ports:
+            - containerPort: 8080
+          env:
+            # In Kubernetes, use service names instead of localhost.
+            # Kubernetes DNS resolves "user-service" to the correct pod IP automatically.
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_0_URI
+              value: http://user-service:8081
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_1_URI
+              value: http://flight-service:8082
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_2_URI
+              value: http://booking-service:8083
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_3_URI
+              value: http://payment-service:8084
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: LoadBalancer
+  # LoadBalancer = reachable from outside the cluster.
+  # Every other service uses ClusterIP = internal only.
+  # This is a key security principle — only expose what needs to be exposed.

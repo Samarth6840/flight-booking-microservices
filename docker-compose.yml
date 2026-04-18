@@ -1,0 +1,126 @@
+version: '3.8'
+
+networks:
+  flight-network:
+    driver: bridge
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql-data:/var/lib/mysql
+    networks:
+      - flight-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot1234"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    build:
+      context: ./user-service
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/user_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root1234
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - flight-network
+
+  flight-service:
+    build:
+      context: ./flight-service
+    container_name: flight-service
+    ports:
+      - "8092:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/flight_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root1234
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - flight-network
+
+  payment-service:
+    build:
+      context: ./payment-service
+    container_name: payment-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payment_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root1234
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - flight-network
+
+  booking-service:
+    build:
+      context: ./booking-service
+    container_name: booking-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/booking_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root1234
+      FLIGHT_SERVICE_URL: http://flight-service:8082/flights
+      PAYMENT_SERVICE_URL: http://payment-service:8084/payments
+    depends_on:
+      mysql:
+        condition: service_healthy
+      flight-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+    networks:
+      - flight-network
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "9090:8080"
+    environment:
+      SPRING_CLOUD_GATEWAY_ROUTES_0_ID: user-service
+      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://user-service:8081
+      SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0: Path=/users/**
+      SPRING_CLOUD_GATEWAY_ROUTES_1_ID: flight-service
+      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://flight-service:8082
+      SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0: Path=/flights/**
+      SPRING_CLOUD_GATEWAY_ROUTES_2_ID: booking-service
+      SPRING_CLOUD_GATEWAY_ROUTES_2_URI: http://booking-service:8083
+      SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0: Path=/bookings/**
+      SPRING_CLOUD_GATEWAY_ROUTES_3_ID: payment-service
+      SPRING_CLOUD_GATEWAY_ROUTES_3_URI: http://payment-service:8084
+      SPRING_CLOUD_GATEWAY_ROUTES_3_PREDICATES_0: Path=/payments/**
+    depends_on:
+      - user-service
+      - flight-service
+      - booking-service
+      - payment-service
+    networks:
+      - flight-network
+
+volumes:
+  mysql-data:
