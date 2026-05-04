@@ -7,6 +7,6 @@ public class PaymentResponse {
     private Long id;
     private Long bookingId;
     private double amount;
-    private String paymentStatus; // "SUCCESS" or "FAILED"
+    private String paymentStatus; 
     private String paymentMode;
 }

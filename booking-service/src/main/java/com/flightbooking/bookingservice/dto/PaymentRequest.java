@@ -8,5 +8,5 @@ import lombok.Data;
 public class PaymentRequest {
     private Long bookingId;
     private double amount;
-    private String paymentMode; // e.g. "CARD", "UPI", "NET_BANKING"
+    private String paymentMode; 
 }
